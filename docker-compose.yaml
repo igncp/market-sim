@@ -1,0 +1,28 @@
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+  prometheus:
+    image: prom/prometheus:latest
+    network_mode: host
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - "prometheus-data:/prometheus"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-admin-api"
+  grafana:
+    image: grafana/grafana:latest
+    network_mode: host
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1s
+
+volumes:
+  redis-data:
+  grafana-data:
+  prometheus-data:
