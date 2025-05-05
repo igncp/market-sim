@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::money::Money;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct BrokerId(u64);
 
 impl BrokerId {
@@ -33,14 +33,14 @@ pub struct Broker {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Brokers {
     pub last_id: BrokerId,
-    pub mapping: HashMap<BrokerId, Broker>,
+    pub mapping: BTreeMap<BrokerId, Broker>,
 }
 
 impl Default for Brokers {
     fn default() -> Self {
         Brokers {
             last_id: BrokerId::init(),
-            mapping: HashMap::new(),
+            mapping: BTreeMap::new(),
         }
     }
 }

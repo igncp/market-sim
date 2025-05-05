@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub trait StorageConfigFile {
     async fn get_config_file(&self, file_name: &str) -> Result<Option<String>, String>;
@@ -15,7 +15,7 @@ pub trait StorageRedis {
 pub struct PrometheusMetric {
     pub name: String,
     pub value: f64,
-    pub labels: HashMap<String, String>,
+    pub labels: BTreeMap<String, String>,
 }
 impl PrometheusMetric {
     pub fn simple(name: &str, value: f64) -> Self {

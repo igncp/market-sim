@@ -1,14 +1,21 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 mod base;
 mod company_symbol;
 mod ipo;
 mod listed_company;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, Hash, Eq, PartialEq, Ord)]
 #[serde(transparent)]
 pub struct CompanySymbol(pub(crate) String);
+
+impl PartialOrd for CompanySymbol {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 pub enum CompanySymbolVerifyError {
     Symbol,
@@ -27,7 +34,7 @@ pub enum CompanyVerifyError {
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Companies {
-    pub mapping: HashMap<CompanySymbol, Company>,
+    pub mapping: BTreeMap<CompanySymbol, Company>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -47,7 +54,7 @@ pub enum ListedCompanyVerifyError {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ListedCompanies {
-    pub mapping: HashMap<CompanySymbol, ListedCompany>,
+    pub mapping: BTreeMap<CompanySymbol, ListedCompany>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -60,5 +67,5 @@ pub struct Ipo {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Ipos {
-    pub mapping: HashMap<CompanySymbol, Ipo>,
+    pub mapping: BTreeMap<CompanySymbol, Ipo>,
 }

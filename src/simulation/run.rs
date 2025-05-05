@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::core::{
     order::{Order, OrderSide, OrderStatus, OrderType},
     price::Prices,
@@ -5,12 +7,13 @@ use crate::core::{
     stock_exchange::StockExchange,
     time::TimeHandler,
 };
-use log::debug;
 use rand::{seq::SliceRandom, Rng};
 use rust_decimal::{prelude::FromPrimitive, Decimal};
-use std::collections::HashMap;
 
 use super::Simulation;
+
+mod verify_holidays;
+mod verify_investors;
 
 impl Simulation {
     fn create_new_orders(&mut self, se: &mut StockExchange, time: &TimeHandler) {
@@ -153,7 +156,7 @@ impl Simulation {
     }
 
     fn update_prices(&mut self, se: &mut StockExchange) {
-        let mut new_prices = HashMap::new();
+        let mut new_prices = BTreeMap::new();
 
         for (symbol, price) in &se.prices.0 {
             let average = price.get_average().value;
@@ -172,44 +175,21 @@ impl Simulation {
         se.prices = Prices(new_prices);
     }
 
-    fn verify_investors(
-        &mut self,
-        se: &mut StockExchange,
-        time: &TimeHandler,
-    ) -> Result<(), String> {
-        // - TODO: Check if any investor is too poor
-        let mut investors_to_remove = Vec::new();
-
-        for investor in se.investors.mapping.values() {
-            if investor.get_age(time) > self.settings.max_investor_age as f64 {
-                investors_to_remove.push(investor.id);
-            }
-        }
-
-        for investor_id in investors_to_remove {
-            se.investors.mapping.remove(&investor_id);
-            debug!(
-                "Removed investor in simulation because too old: {:?}",
-                investor_id
-            );
-
-            let new_investor = self.create_valid_new_investor(se, time)?;
-
-            se.investors.mapping.insert(new_investor.id, new_investor);
-        }
-
-        Ok(())
-    }
-
     pub fn run(&mut self, se: &mut StockExchange, time: &TimeHandler) -> Result<(), String> {
         // WIP: Steps to run:
-        // - Check session type
         // - Introduce brokers
         // - List new companies via IPO
         // - Remove comanies via delisting
         // - Introduce random price changes due to good/bad news of companies
 
-        self.verify_investors(se, time)?;
+        let current_day = time.get_virtual_day_formatted();
+        if self.daily_checks != Some(current_day) {
+            self.verify_holidays(se, time)?;
+            self.verify_investors(se, time)?;
+
+            let current_day = time.get_virtual_day_formatted();
+            self.daily_checks = Some(current_day);
+        }
 
         if se.can_trade_now(time) {
             self.create_new_orders(se, time);

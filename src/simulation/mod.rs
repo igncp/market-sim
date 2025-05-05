@@ -30,6 +30,8 @@ pub struct Simulation {
     r: StdRng,
     price_storage: Box<dyn PriceStorage>,
 
+    daily_checks: Option<String>,
+
     pub settings: SimulationSettings,
 }
 
@@ -42,9 +44,10 @@ impl Simulation {
         let r = StdRng::from_seed(seed);
 
         Simulation {
+            daily_checks: None,
+            price_storage,
             r,
             settings,
-            price_storage,
         }
     }
 
@@ -63,4 +66,35 @@ impl Simulation {
 pub struct SimulationState {
     pub time: TimeHandler,
     pub se: StockExchange,
+}
+
+mod test {
+    use super::*;
+    #[allow(unused_imports)]
+    use rand::Rng as _;
+
+    struct PriceStorageMock;
+
+    impl PriceStorage for PriceStorageMock {
+        fn save_historic_price(
+            &mut self,
+            _prices: &Prices,
+            _time_handler: &TimeHandler,
+        ) -> Result<(), SaveHistoricPriceError> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_seed_is_deterministic() {
+        let mut sim = Simulation::new(
+            [0; 32],
+            SimulationSettings::default(),
+            Box::new(PriceStorageMock),
+        );
+
+        let rand_num = sim.r.gen_range(0..100);
+
+        assert_eq!(rand_num, 41);
+    }
 }

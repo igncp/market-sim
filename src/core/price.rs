@@ -1,7 +1,7 @@
 use super::{company::CompanySymbol, money::Money};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy)]
 pub struct Price {
@@ -33,7 +33,7 @@ impl Price {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct Prices(pub HashMap<CompanySymbol, Price>);
+pub struct Prices(pub BTreeMap<CompanySymbol, Price>);
 
 impl Prices {
     pub fn get_lowest_bid_price(&self) -> Option<&Money> {

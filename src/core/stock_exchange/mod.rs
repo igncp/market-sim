@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::core::{
     broker::Brokers,
     company::{Companies, Ipos, ListedCompanies},
@@ -27,6 +29,7 @@ pub struct StockExchangeSettings {
 pub struct StockExchange {
     pub brokers: Brokers,
     pub companies: Companies,
+    pub holidays: BTreeMap<String, BTreeSet<String>>,
     pub investors: Investors,
     pub ipos: Ipos,
     pub listed_companies: ListedCompanies,

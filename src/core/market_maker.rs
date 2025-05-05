@@ -1,8 +1,11 @@
+use std::collections::BTreeMap;
+
 use super::time::TimeHandler;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(
+    Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, Hash, Default, PartialOrd, Ord,
+)]
 #[serde(transparent)]
 pub struct MarketMakerId(u64);
 
@@ -45,5 +48,5 @@ impl MarketMaker {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct MarketMakers {
     pub last_id: MarketMakerId,
-    pub mapping: HashMap<MarketMakerId, MarketMaker>,
+    pub mapping: BTreeMap<MarketMakerId, MarketMaker>,
 }

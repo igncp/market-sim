@@ -1,25 +1,26 @@
 use crate::{
     core::{
         stock_exchange::{StockExchange, StockExchangeSettings},
-        time::TimeHandler,
+        time::{TimeHandler, DEFAULT_TIMEZONE},
     },
     logger::Logger,
     simulation::{settings::SimulationSettings, Simulation, SimulationState},
     storage::{prometheus::StoragePrometheusImpl, redis::StorageRedisImpl},
 };
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
-use log::{debug, error};
+use json_metrics::build_json_metrics;
+use log::{debug, error, info};
 use prometheus_metrics::build_server_prometheus_metrics;
-use serde_json::json;
 use std::{
+    process,
     sync::{Arc, RwLock},
     thread,
-    time::{SystemTime, UNIX_EPOCH},
 };
 use storage_wrappers::{
     load_simulation_state, save_simulation_state, LoadSimulationStateError, RedisPriceStorage,
 };
 
+mod json_metrics;
 mod prometheus_metrics;
 mod storage_wrappers;
 
@@ -73,27 +74,29 @@ async fn get_prometheus_metrics(
 
 #[get("/grafana/data")]
 async fn get_grafana_data(
-    time: web::Data<TimeWrapper>,
-    simulation_settings: web::Data<SimulationSettingsWrapper>,
+    se_wrapper: web::Data<SEWrapper>,
+    time_wrapper: web::Data<TimeWrapper>,
+    simulation_settings_wrapper: web::Data<SimulationSettingsWrapper>,
 ) -> actix_web::Result<HttpResponse> {
-    let (time, simulation_settings) = {
-        let time_inner = time.read().unwrap();
-        let simulation_settings = simulation_settings.read().unwrap();
+    let (time, se, simulation_settings) = {
+        let time_inner = time_wrapper.read().unwrap();
+        let simulation_settings = simulation_settings_wrapper.read().unwrap();
+        let se_inner = se_wrapper.read().unwrap();
 
-        (time_inner.clone(), simulation_settings.clone())
+        (
+            time_inner.clone(),
+            se_inner.clone(),
+            simulation_settings.clone(),
+        )
     };
 
-    let response = json!({
-        "current_time": time.get_virtual_time_formatted(),
-        "simulation_settings": {
-            "max_orders_per_tick": simulation_settings.max_orders_per_tick,
-            "flush_storage": simulation_settings.flush_storage,
-            "max_investor_age": simulation_settings.max_investor_age,
-            "max_orders_per_tick": simulation_settings.max_orders_per_tick,
-        }
-    });
-
-    Ok(HttpResponse::Ok().json(response))
+    build_json_metrics(time, simulation_settings, se).map_or_else(
+        |e| {
+            error!("Failed to build prometheus metrics: {}", e);
+            Ok(HttpResponse::InternalServerError().finish())
+        },
+        |response| Ok(HttpResponse::Ok().json(response)),
+    )
 }
 
 const DEFAULT_SEED: [u8; 32] = [
@@ -105,7 +108,7 @@ pub async fn run_server(simulation_settings: SimulationSettings) -> Result<(), S
     let se_settings = StockExchangeSettings {
         name: "Market Simulator".to_string(),
         location: "Hong Kong".to_string(),
-        timezone: "UTC+8".to_string(),
+        timezone: DEFAULT_TIMEZONE.to_string(),
         trading_days: vec![0, 1, 2, 3, 4],
         trading_hours: vec![9, 10, 11, 12, 13, 14, 15],
         ..Default::default()
@@ -113,11 +116,17 @@ pub async fn run_server(simulation_settings: SimulationSettings) -> Result<(), S
 
     let create_new_state = || {
         let se = StockExchange::new(se_settings);
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_secs();
-        let time = TimeHandler::new(now, None);
+        let beginning_of_today = chrono::Utc::now()
+            .with_timezone(&DEFAULT_TIMEZONE.get_tz())
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        let default_starting_time = beginning_of_today.and_utc().timestamp() as u64;
+        let time = TimeHandler::new(
+            default_starting_time,
+            None,
+            simulation_settings.time_to_wait_millis,
+        );
 
         (se, time)
     };
@@ -188,6 +197,16 @@ pub async fn run_server(simulation_settings: SimulationSettings) -> Result<(), S
         let mut redis_storage: StorageRedisImpl = simulation_settings.clone().into();
 
         loop {
+            if simulation_settings.max_duration_seconds.is_some() {
+                let time_inner = time_1.read().unwrap();
+                if time_inner.get_running_seconds() as u64
+                    >= simulation_settings.max_duration_seconds.unwrap()
+                {
+                    info!("Simulation reached max duration, stopping...");
+                    process::exit(0);
+                }
+            }
+
             {
                 let mut se_inner = se_1.write().unwrap();
                 let time_inner = time_1.read().unwrap();

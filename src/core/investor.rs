@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::{
     money::{Money, MoneyVerifyError},
@@ -8,7 +8,7 @@ use rand::{rngs::StdRng, seq::SliceRandom};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Copy)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Copy, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct InvestorId(u64);
 
@@ -99,7 +99,7 @@ impl Investor {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Investors {
     pub last_id: InvestorId,
-    pub mapping: HashMap<InvestorId, Investor>,
+    pub mapping: BTreeMap<InvestorId, Investor>,
 }
 
 impl Investors {

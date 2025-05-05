@@ -10,3 +10,6 @@ The current stack is based on these technologies:
     - `fake`: for generating fake data
 - Redis: for saving the state of the simulation
 - Prometheus and Grafana: for monitoring and visualizations
+
+The code is deterministic, using a provided seed approach to generate
+randomness in the simulation.

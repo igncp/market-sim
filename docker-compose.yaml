@@ -1,3 +1,4 @@
+name: market-sim
 services:
   redis:
     image: redis:latest

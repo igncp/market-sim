@@ -1,10 +1,11 @@
+use std::collections::BTreeMap;
+
 use super::{
     company::CompanySymbol, investor::InvestorId, market_maker::MarketMakerId, money::Money,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Copy, PartialOrd, Ord)]
 pub enum StockOwner {
     Investor(InvestorId),
     MarketMaker(MarketMakerId),
@@ -55,7 +56,7 @@ pub struct Stock {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct OwnedStocks(pub HashMap<StockOwner, Vec<Stock>>);
+pub struct OwnedStocks(pub BTreeMap<StockOwner, Vec<Stock>>);
 
 impl OwnedStocks {
     pub fn has_stocks(&self, owner: &StockOwner) -> bool {

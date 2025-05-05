@@ -57,6 +57,11 @@ impl Cli {
                             .required(false),
                     )
                     .arg(
+                        clap::Arg::new("max-duration-seconds")
+                            .long("max-duration-seconds")
+                            .required(false),
+                    )
+                    .arg(
                         clap::Arg::new("address")
                             .short('a')
                             .long("address")
@@ -71,6 +76,11 @@ impl Cli {
                     .arg(
                         clap::Arg::new("prometheus-url")
                             .long("prometheus-url")
+                            .required(false),
+                    )
+                    .arg(
+                        clap::Arg::new("time-to-wait-millis")
+                            .long("time-to-wait-millis")
                             .required(false),
                     ),
             )
@@ -94,16 +104,36 @@ impl Cli {
                 let port = sub_matches.get_one::<String>("port").cloned();
                 let redis_url = sub_matches.get_one::<String>("redis-url").cloned();
                 let prometheus_url = sub_matches.get_one::<String>("prometheus-url").cloned();
+                let time_to_wait_millis = sub_matches
+                    .get_one::<String>("time-to-wait-millis")
+                    .cloned()
+                    .map(|s| {
+                        s.parse::<u64>().unwrap_or_else(|_| {
+                            eprintln!("Invalid value for time_to_wait_millis");
+                            std::process::exit(1);
+                        })
+                    });
+                let max_duration_seconds = sub_matches
+                    .get_one::<String>("max-duration-seconds")
+                    .cloned()
+                    .map(|s| {
+                        s.parse::<u64>().unwrap_or_else(|_| {
+                            eprintln!("Invalid value for max-duration");
+                            std::process::exit(1);
+                        })
+                    });
 
                 let simulation_settings = SimulationSettingsBuilder {
                     address,
                     flush_storage,
+                    max_duration_seconds,
                     max_investor_age: None,
                     max_orders_per_tick,
                     port,
                     prometheus_job_name: None,
                     prometheus_url,
                     redis_url,
+                    time_to_wait_millis,
                 }
                 .load_from_storage(&StorageConfigFileImpl)
                 .await

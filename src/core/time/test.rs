@@ -13,7 +13,7 @@ mod test {
 
         #[test]
         fn returns_correct_values() {
-            let mut time_handler = TimeHandler::new(0, None);
+            let mut time_handler = TimeHandler::new(0, None, 100);
 
             time_handler.millis_to_wait = 1000;
 

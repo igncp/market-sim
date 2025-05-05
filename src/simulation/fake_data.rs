@@ -11,11 +11,11 @@ use fake::{
 };
 use rand::{rngs::StdRng, Rng};
 use rust_decimal::{prelude::FromPrimitive, Decimal};
-use std::collections::HashSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 impl Companies {
     pub fn gen_list(existing: &Self, n: usize, rng: &mut StdRng) -> Result<Self, String> {
-        let mut symbols: HashSet<CompanySymbol> = HashSet::default();
+        let mut symbols: BTreeSet<CompanySymbol> = BTreeSet::default();
         let mut list = Vec::with_capacity(n);
         let mut failures = 0;
 
@@ -28,11 +28,11 @@ impl Companies {
         loop {
             let (symbol, name) = loop {
                 let tmp_name: String = match rng.gen::<u8>() % 5 {
-                    0 => company::en::CompanyName().fake(),
-                    1 => company::zh_tw::CompanyName().fake(),
-                    2 => company::pt_br::CompanyName().fake(),
-                    3 => company::ja_jp::CompanyName().fake(),
-                    _ => company::fr_fr::CompanyName().fake(),
+                    0 => company::en::CompanyName().fake_with_rng(rng),
+                    1 => company::zh_tw::CompanyName().fake_with_rng(rng),
+                    2 => company::pt_br::CompanyName().fake_with_rng(rng),
+                    3 => company::ja_jp::CompanyName().fake_with_rng(rng),
+                    _ => company::fr_fr::CompanyName().fake_with_rng(rng),
                 };
 
                 let tmp_symbol_str: String = tmp_name
@@ -96,12 +96,10 @@ impl ListedCompanies {
             list.push(company);
         }
 
-        let mapping =
-            list.into_iter()
-                .fold(std::collections::HashMap::new(), |mut acc, company| {
-                    acc.insert(company.symbol.clone(), company);
-                    acc
-                });
+        let mapping = list.into_iter().fold(BTreeMap::new(), |mut acc, company| {
+            acc.insert(company.symbol.clone(), company);
+            acc
+        });
 
         Ok(ListedCompanies { mapping })
     }
@@ -130,12 +128,10 @@ impl Ipos {
             list.push(company);
         }
 
-        let mapping =
-            list.into_iter()
-                .fold(std::collections::HashMap::new(), |mut acc, company| {
-                    acc.insert(company.symbol.clone(), company);
-                    acc
-                });
+        let mapping = list.into_iter().fold(BTreeMap::new(), |mut acc, company| {
+            acc.insert(company.symbol.clone(), company);
+            acc
+        });
 
         Ok(Ipos { mapping })
     }
@@ -143,7 +139,7 @@ impl Ipos {
 
 impl Investors {
     pub fn gen_list(n: usize, time: &TimeHandler, rng: &mut StdRng) -> Result<Self, String> {
-        let mut names: HashSet<String> = HashSet::default();
+        let mut names: BTreeSet<String> = BTreeSet::default();
         let mut list = Vec::with_capacity(n);
         let mut failures = 0;
 
